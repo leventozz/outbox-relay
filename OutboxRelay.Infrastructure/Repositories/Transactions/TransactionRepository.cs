@@ -16,7 +16,6 @@ namespace OutboxRelay.Infrastructure.Repositories.Transactions
         public async Task<Transaction> CreateAsync(Transaction transaction)
         {
             _context.Transactions.Add(transaction);
-            await _context.SaveChangesAsync();
             return transaction;
         }
 

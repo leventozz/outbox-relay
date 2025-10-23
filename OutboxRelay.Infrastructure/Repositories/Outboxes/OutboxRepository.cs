@@ -17,7 +17,6 @@ namespace OutboxRelay.Infrastructure.Repositories.Outboxes
         public async Task<Outbox> CreateAsync(Outbox outbox)
         {
             _context.Outboxes.Add(outbox);
-            await _context.SaveChangesAsync();
             return outbox;
         }
 

@@ -11,11 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OutboxRelay.Infrastructure\OutboxRelay.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Controllers\" />
+    <ProjectReference Include="..\OutboxRelay.Application\OutboxRelay.Application.csproj" />
   </ItemGroup>
 
 </Project>
