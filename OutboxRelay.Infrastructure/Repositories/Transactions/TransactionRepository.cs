@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OutboxRelay.Common.Exceptions;
 using OutboxRelay.Infrastructure.Models;
 
 namespace OutboxRelay.Infrastructure.Repositories.Transactions
@@ -32,7 +33,7 @@ namespace OutboxRelay.Infrastructure.Repositories.Transactions
 
             if (transaction == null)
             {
-                throw new ArgumentException($"Transaction with id {id} not found");
+                throw new TransactionNotFoundException();
             }
 
             transaction.Status = status;

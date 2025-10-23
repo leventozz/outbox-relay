@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OutboxRelay.Common.Enums;
+using OutboxRelay.Common.Exceptions;
 using OutboxRelay.Infrastructure.Models;
 
 namespace OutboxRelay.Infrastructure.Repositories.Outboxes
@@ -41,7 +42,7 @@ namespace OutboxRelay.Infrastructure.Repositories.Outboxes
 
             if (outbox == null)
             {
-                throw new ArgumentException($"Outbox with id {id} not found");
+                throw new OutboxNotFoundException();
             }
 
             outbox.Status = status;
@@ -57,7 +58,7 @@ namespace OutboxRelay.Infrastructure.Repositories.Outboxes
 
             if (outbox == null)
             {
-                throw new ArgumentException($"Outbox with id {id} not found");
+                throw new OutboxNotFoundException();
             }
 
             outbox.RetryCount = retryCount;

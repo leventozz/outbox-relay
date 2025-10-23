@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using OutboxRelay.Infrastructure.Models;
-using System;
+using OutboxRelay.Infrastructure.Repositories.Outboxes;
+using OutboxRelay.Infrastructure.Repositories.Transactions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("MSSQL")));
+
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
+builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 
 var app = builder.Build();
 
