@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="OutboxRelay.Api/OutboxRelay.Api.csproj" />
+    <Project Path="OutboxRelay.Infrastructure/OutboxRelay.Infrastructure.csproj" />
+  </Folder>
+</Solution>
