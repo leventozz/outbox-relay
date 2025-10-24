@@ -1,11 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OutboxRelay.Api.Models;
 using OutboxRelay.Application.Transactions;
-using OutboxRelay.Common.Enums;
-using OutboxRelay.Infrastructure.Models;
-using OutboxRelay.Infrastructure.Repositories.Outboxes;
-using OutboxRelay.Infrastructure.Repositories.Transactions;
-using System.Text.Json;
 
 namespace OutboxRelay.Api.Controllers
 {
@@ -23,16 +18,8 @@ namespace OutboxRelay.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionRequest request)
         {
-            try
-            {
-                await _transactionApplication.CommitAsync(request.FromAccountId, request.ToAccountId, request.Amount);
-
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while creating the transaction", error = ex.Message });
-            }
+            var pendingTransaction = await _transactionApplication.RegisterTransactionAsync(request.FromAccountId, request.ToAccountId, request.Amount);
+            return Ok(pendingTransaction);
         }
 
     }

@@ -22,7 +22,7 @@ namespace OutboxRelay.Application.Transactions
             _context = context;
         }
 
-        public async Task<Transaction> CommitAsync(int fromAccountId, int toAccountId, decimal amount)
+        public async Task<Transaction> RegisterTransactionAsync(int fromAccountId, int toAccountId, decimal amount)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
 

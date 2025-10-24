@@ -4,6 +4,6 @@ namespace OutboxRelay.Application.Transactions
 {
     public interface ITransactionApplication
     {
-        Task<Transaction> CommitAsync(int fromAccountId, int toAccountId, decimal amount);
+        Task<Transaction> RegisterTransactionAsync(int fromAccountId, int toAccountId, decimal amount);
     }
 }
