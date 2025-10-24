@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OutboxRelay.Application.Abstractions;
 using OutboxRelay.Common.Exceptions;
-using OutboxRelay.Infrastructure.Models;
+using OutboxRelay.Core.Models;
 
 namespace OutboxRelay.Infrastructure.Repositories.Transactions
 {

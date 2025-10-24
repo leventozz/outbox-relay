@@ -1,6 +1,6 @@
-﻿using OutboxRelay.Infrastructure.Models;
+﻿using OutboxRelay.Core.Models;
 
-namespace OutboxRelay.Infrastructure.Repositories.Transactions
+namespace OutboxRelay.Application.Abstractions
 {
     public interface ITransactionRepository
     {

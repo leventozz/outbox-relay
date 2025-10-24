@@ -1,6 +1,6 @@
-﻿using OutboxRelay.Infrastructure.Models;
+﻿using OutboxRelay.Core.Models;
 
-namespace OutboxRelay.Infrastructure.Repositories.Outboxes
+namespace OutboxRelay.Application.Abstractions
 {
     public interface IOutboxRepository
     {

@@ -1,8 +1,9 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using OutboxRelay.Common.Enums;
+using OutboxRelay.Application.Abstractions;
 using OutboxRelay.Common.Exceptions;
-using OutboxRelay.Infrastructure.Models;
+using OutboxRelay.Core.Enums;
+using OutboxRelay.Core.Models;
 using System.Data;
 
 namespace OutboxRelay.Infrastructure.Repositories.Outboxes

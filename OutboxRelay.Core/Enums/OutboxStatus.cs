@@ -1,4 +1,4 @@
-﻿namespace OutboxRelay.Common.Enums
+﻿namespace OutboxRelay.Core.Enums
 {
     public enum OutboxStatus
     {

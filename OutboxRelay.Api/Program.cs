@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OutboxRelay.Api.Middlewares;
-using OutboxRelay.Application.Transactions;
-using OutboxRelay.Application.Transactions.Abstractions;
+using OutboxRelay.Application.Abstractions;
+using OutboxRelay.Application.Features.Transactions;
 using OutboxRelay.Common.Configuration;
-using OutboxRelay.Infrastructure.Models;
+using OutboxRelay.Core.Models;
+using OutboxRelay.Infrastructure;
 using OutboxRelay.Infrastructure.Publisher;
 using OutboxRelay.Infrastructure.Publisher.Abstractions;
 using OutboxRelay.Infrastructure.Repositories.Outboxes;
@@ -36,12 +37,14 @@ builder.Services.AddSingleton<ConnectionFactory>(sp =>
         Password = rabbitMqSettings.Password
     };
 });
+
 builder.Services.AddSingleton<RabbitMqClientService>();
 builder.Services.AddScoped<IRabbitMqPublisher, RabbitMqPublisher>();
 
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 builder.Services.AddScoped<ITransactionApplication, TransactionApplication>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();

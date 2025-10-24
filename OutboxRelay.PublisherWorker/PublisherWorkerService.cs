@@ -1,9 +1,9 @@
-﻿using OutboxRelay.Common.Enums;
+﻿using OutboxRelay.Application.Abstractions;
 using OutboxRelay.Common.Messaging;
 using OutboxRelay.Common.Options;
-using OutboxRelay.Infrastructure.Models;
+using OutboxRelay.Core.Enums;
+using OutboxRelay.Core.Models;
 using OutboxRelay.Infrastructure.Publisher.Abstractions;
-using OutboxRelay.Infrastructure.Repositories.Outboxes;
 using System.Text.Json;
 
 namespace OutboxRelay.PublisherWorkerService

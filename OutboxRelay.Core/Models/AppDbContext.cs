@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace OutboxRelay.Infrastructure.Models
+namespace OutboxRelay.Core.Models
 {
     public class AppDbContext : DbContext
     {

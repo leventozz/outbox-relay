@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using OutboxRelay.Application.Abstractions;
 using OutboxRelay.Common.Configuration;
-using OutboxRelay.Infrastructure.Models;
+using OutboxRelay.Core.Models;
 using OutboxRelay.Infrastructure.Publisher;
 using OutboxRelay.Infrastructure.Publisher.Abstractions;
 using OutboxRelay.Infrastructure.Repositories.Outboxes;

@@ -1,27 +1,19 @@
-﻿using OutboxRelay.Application.Transactions.Abstractions;
-using OutboxRelay.Common.Enums;
-using OutboxRelay.Infrastructure.Models;
-using OutboxRelay.Infrastructure.Repositories.Outboxes;
-using OutboxRelay.Infrastructure.Repositories.Transactions;
+﻿using OutboxRelay.Application.Abstractions;
+using OutboxRelay.Core.Enums;
+using OutboxRelay.Core.Models;
 using System.Text.Json;
 
-namespace OutboxRelay.Application.Transactions
+namespace OutboxRelay.Application.Features.Transactions
 {
     public class TransactionApplication : ITransactionApplication
     {
-        private readonly ITransactionRepository _transactionRepository;
-        private readonly IOutboxRepository _outboxRepository;
-        private readonly AppDbContext _context;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public TransactionApplication(
-            ITransactionRepository transactionRepository,
-            IOutboxRepository outboxRepository,
-            AppDbContext context)
+        public TransactionApplication(IUnitOfWork unitOfWork)
         {
-            _transactionRepository = transactionRepository;
-            _outboxRepository = outboxRepository;
-            _context = context;
+            _unitOfWork = unitOfWork;
         }
+
         /// <summary>
         /// Registers a new transaction between two accounts asynchronously and persists it to the database with atomicity.
         /// </summary>
@@ -35,10 +27,9 @@ namespace OutboxRelay.Application.Transactions
         /// entity.</returns>
         public async Task<Transaction> RegisterTransactionAsync(int fromAccountId, int toAccountId, decimal amount)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-
             try
             {
+                
                 var transactionEntity = new Transaction
                 {
                     Id = Guid.NewGuid(),
@@ -60,17 +51,17 @@ namespace OutboxRelay.Application.Transactions
                     CreatedAt = DateTimeOffset.UtcNow
                 };
 
-                await _transactionRepository.CreateAsync(transactionEntity);
-                await _outboxRepository.CreateAsync(outboxEntity);
+                
+                await _unitOfWork.TransactionRepository.CreateAsync(transactionEntity);
+                await _unitOfWork.OutboxRepository.CreateAsync(outboxEntity);
 
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                await _unitOfWork.CommitAsync();
 
                 return transactionEntity;
             }
             catch
             {
-                await transaction.RollbackAsync();
+                await _unitOfWork.RollbackAsync();
                 throw;
             }
         }

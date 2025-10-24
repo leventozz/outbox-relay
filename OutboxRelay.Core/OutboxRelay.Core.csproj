@@ -13,13 +13,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\OutboxRelay.Application\OutboxRelay.Application.csproj" />
-    <ProjectReference Include="..\OutboxRelay.Common\OutboxRelay.Common.csproj" />
-    <ProjectReference Include="..\OutboxRelay.Core\OutboxRelay.Core.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OutboxRelay.Api.Models;
-using OutboxRelay.Application.Transactions.Abstractions;
+using OutboxRelay.Application.Features.Transactions;
 
 namespace OutboxRelay.Api.Controllers
 {

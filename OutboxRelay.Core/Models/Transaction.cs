@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace OutboxRelay.Infrastructure.Models
+namespace OutboxRelay.Core.Models
 {
     public class Transaction
     {
