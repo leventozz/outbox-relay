@@ -21,7 +21,17 @@ namespace OutboxRelay.Application.Transactions
             _outboxRepository = outboxRepository;
             _context = context;
         }
-
+        /// <summary>
+        /// Registers a new transaction between two accounts asynchronously and persists it to the database with atomicity.
+        /// </summary>
+        /// <remarks>The transaction is initially created with a status of Pending. If the operation
+        /// fails, the transaction is rolled back and the exception is propagated to the caller.</remarks>
+        /// <param name="fromAccountId">The unique identifier of the account from which the funds will be debited.</param>
+        /// <param name="toAccountId">The unique identifier of the account to which the funds will be credited.</param>
+        /// <param name="amount">The amount of money to transfer from the source account to the destination account. Must be a positive
+        /// value.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the registered transaction
+        /// entity.</returns>
         public async Task<Transaction> RegisterTransactionAsync(int fromAccountId, int toAccountId, decimal amount)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
