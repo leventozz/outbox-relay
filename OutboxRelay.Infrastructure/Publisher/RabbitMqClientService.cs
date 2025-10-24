@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using OutboxRelay.Common.Const;
+using OutboxRelay.Common.Exceptions;
 using RabbitMQ.Client;
 
 namespace OutboxRelay.Infrastructure.Publisher
@@ -7,7 +8,7 @@ namespace OutboxRelay.Infrastructure.Publisher
     public class RabbitMqClientService : IAsyncDisposable
     {
         private IConnection? _connection;
-        private bool _isSetupDone = false;
+        private bool _isSetupTopology = false;
         private readonly ConnectionFactory _connectionFactory;
         private readonly ILogger<RabbitMqClientService> _logger;
         private static readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
@@ -28,7 +29,7 @@ namespace OutboxRelay.Infrastructure.Publisher
 
                 #region Exchange and queue setup
 
-                if (!_isSetupDone)
+                if (!_isSetupTopology)
                 {
                     await using var channel = await _connection.CreateChannelAsync();
 
@@ -39,14 +40,29 @@ namespace OutboxRelay.Infrastructure.Publisher
                     await channel.QueueDeclareAsync(RabbitMqConstants.TransactionQueueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
 
                     //queue bind
-                    await channel.QueueBindAsync(queue: RabbitMqConstants.TransactionQueueName, exchange: RabbitMqConstants.TransactionExchangeName, routingKey: RabbitMqConstants.TransactionCreateRouteName);
+                    await channel.QueueBindAsync(queue: RabbitMqConstants.TransactionQueueName, exchange: RabbitMqConstants.TransactionExchangeName, routingKey: RabbitMqConstants.TransactionCreateRoutingKey);
 
                     //logging
-                    _logger.LogInformation("RabbitMQ connection started");
-                    _isSetupDone = true;
+                    _logger.LogInformation(
+                        "RabbitMQ topology setup completed - Exchange: {Exchange}, Queue: {Queue}",
+                        RabbitMqConstants.TransactionExchangeName,
+                        RabbitMqConstants.TransactionQueueName);
+                    _isSetupTopology = true;
                 }
 
                 #endregion
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                        "RabbitMQ topology setup NOT completed - Exchange: {Exchange}, Queue: {Queue}",
+                        RabbitMqConstants.TransactionExchangeName,
+                        RabbitMqConstants.TransactionQueueName);
+
+                throw new RabbitMqTopologyException(
+                    RabbitMqConstants.TransactionExchangeName,
+                    RabbitMqConstants.TransactionQueueName,
+                    ex);
             }
             finally
             {
@@ -57,11 +73,20 @@ namespace OutboxRelay.Infrastructure.Publisher
 
         public async ValueTask DisposeAsync()
         {
-            if (_connection != null)
+            await _connectionLock.WaitAsync();
+            try
             {
-                await _connection.CloseAsync();
-                _connection.Dispose();
-                _logger.LogInformation("RabbitMQ connection disposed");
+                if (_connection != null)
+                {
+                    await _connection.CloseAsync();
+                    _connection.Dispose();
+                    _logger.LogInformation("RabbitMQ connection disposed");
+                }
+            }
+            finally
+            {
+                _connectionLock.Release();
+                _connectionLock.Dispose();
             }
         }
     }

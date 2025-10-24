@@ -4,6 +4,6 @@
     {
         public const string TransactionExchangeName = "exchange.transactions";
         public const string TransactionQueueName = "queue.transactions.outbox";
-        public const string TransactionCreateRouteName = "routing.transactions.create";
+        public const string TransactionCreateRoutingKey = "routing.transactions.create";
     }
 }
