@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using OutboxRelay.Application.Transactions;
 using OutboxRelay.Common.Configuration;
 using OutboxRelay.Infrastructure.Models;
 using OutboxRelay.Infrastructure.Repositories.Outboxes;
@@ -16,6 +17,7 @@ builder.Services.Configure<OutboxSettings>(builder.Configuration.GetSection("Out
 
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
+builder.Services.AddScoped<ITransactionApplication, TransactionApplication>();
 
 var app = builder.Build();
 

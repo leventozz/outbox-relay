@@ -15,7 +15,7 @@ namespace OutboxRelay.Api.Controllers
             _transactionApplication = transactionApplication;
         }
 
-        [HttpPost]
+        [HttpPost("CreateTransaction")]
         public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionRequest request)
         {
             var pendingTransaction = await _transactionApplication.RegisterTransactionAsync(request.FromAccountId, request.ToAccountId, request.Amount);
