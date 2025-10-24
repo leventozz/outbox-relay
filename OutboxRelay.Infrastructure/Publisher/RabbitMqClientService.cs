@@ -11,6 +11,7 @@ namespace OutboxRelay.Infrastructure.Publisher
         private IChannel? _channel;
         private readonly ILogger<RabbitMqClientService> _logger;
         private bool _isSetupDone = false;
+        private static readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
 
         public RabbitMqClientService(ConnectionFactory connectionFactory, ILogger<RabbitMqClientService> logger)
         {
@@ -20,34 +21,43 @@ namespace OutboxRelay.Infrastructure.Publisher
 
         public async Task<IChannel> ConnectAsync()
         {
-            if(_connection == null || !_connection.IsOpen)
-                _connection = await _connectionFactory.CreateConnectionAsync();
-
-            if(_channel == null || !_channel.IsOpen)
-                _channel = await _connection.CreateChannelAsync();
-
-            #region Exchange and queue setup
-
-            if (!_isSetupDone)
+            await _connectionLock.WaitAsync();
+            try
             {
-                //direct exchange create
-                await _channel.ExchangeDeclareAsync(exchange: RabbitMqConstants.TransactionExchangeName, type: ExchangeType.Direct, durable: true);
+                if (_connection == null || !_connection.IsOpen)
+                    _connection = await _connectionFactory.CreateConnectionAsync();
 
-                //queue create
-                await _channel.QueueDeclareAsync(RabbitMqConstants.TransactionQueueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
+                if (_channel == null || !_channel.IsOpen)
+                    _channel = await _connection.CreateChannelAsync();
 
-                //queue bind
-                await _channel.QueueBindAsync(queue: RabbitMqConstants.TransactionQueueName, exchange: RabbitMqConstants.TransactionExchangeName, routingKey: RabbitMqConstants.TransactionCreateRouteName);
+                #region Exchange and queue setup
 
-                //logging
-                _logger.LogInformation("RabbitMQ connection started");
-                _isSetupDone = true;
+                if (!_isSetupDone)
+                {
+                    //direct exchange create
+                    await _channel.ExchangeDeclareAsync(exchange: RabbitMqConstants.TransactionExchangeName, type: ExchangeType.Direct, durable: true);
+
+                    //queue create
+                    await _channel.QueueDeclareAsync(RabbitMqConstants.TransactionQueueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
+
+                    //queue bind
+                    await _channel.QueueBindAsync(queue: RabbitMqConstants.TransactionQueueName, exchange: RabbitMqConstants.TransactionExchangeName, routingKey: RabbitMqConstants.TransactionCreateRouteName);
+
+                    //logging
+                    _logger.LogInformation("RabbitMQ connection started");
+                    _isSetupDone = true;
+                }
+
+                #endregion
             }
-            
-            #endregion
-
+            finally
+            {
+                _connectionLock.Release();
+            }
             return _channel;
         }
+
+
 
         public async ValueTask DisposeAsync()
         {

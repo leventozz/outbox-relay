@@ -4,6 +4,7 @@ using OutboxRelay.Api.Middlewares;
 using OutboxRelay.Application.Transactions;
 using OutboxRelay.Common.Configuration;
 using OutboxRelay.Infrastructure.Models;
+using OutboxRelay.Infrastructure.Publisher;
 using OutboxRelay.Infrastructure.Repositories.Outboxes;
 using OutboxRelay.Infrastructure.Repositories.Transactions;
 using RabbitMQ.Client;
@@ -33,6 +34,7 @@ builder.Services.AddSingleton<ConnectionFactory>(sp =>
         Password = rabbitMqSettings.Password
     };
 });
+builder.Services.AddSingleton<RabbitMqClientService>();
 
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
