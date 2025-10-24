@@ -2,7 +2,7 @@
 using OutboxRelay.Common.Messaging;
 using OutboxRelay.Common.Options;
 using OutboxRelay.Infrastructure.Models;
-using OutboxRelay.Infrastructure.Publisher;
+using OutboxRelay.Infrastructure.Publisher.Abstractions;
 using OutboxRelay.Infrastructure.Repositories.Outboxes;
 using System.Text.Json;
 

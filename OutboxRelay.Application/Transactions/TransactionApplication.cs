@@ -1,4 +1,5 @@
-﻿using OutboxRelay.Common.Enums;
+﻿using OutboxRelay.Application.Transactions.Abstractions;
+using OutboxRelay.Common.Enums;
 using OutboxRelay.Infrastructure.Models;
 using OutboxRelay.Infrastructure.Repositories.Outboxes;
 using OutboxRelay.Infrastructure.Repositories.Transactions;

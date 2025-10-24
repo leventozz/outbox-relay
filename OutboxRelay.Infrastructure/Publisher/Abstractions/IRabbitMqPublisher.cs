@@ -1,6 +1,6 @@
 ﻿using OutboxRelay.Common.Messaging;
 
-namespace OutboxRelay.Infrastructure.Publisher
+namespace OutboxRelay.Infrastructure.Publisher.Abstractions
 {
     public interface IRabbitMqPublisher
     {

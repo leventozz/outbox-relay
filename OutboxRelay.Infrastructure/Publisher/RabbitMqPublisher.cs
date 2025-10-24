@@ -3,6 +3,7 @@ using OutboxRelay.Common.Const;
 using OutboxRelay.Common.Exceptions;
 using OutboxRelay.Common.Messaging;
 using OutboxRelay.Common.Options;
+using OutboxRelay.Infrastructure.Publisher.Abstractions;
 using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;

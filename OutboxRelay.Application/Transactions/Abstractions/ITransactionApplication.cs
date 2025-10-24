@@ -1,6 +1,6 @@
 ﻿using OutboxRelay.Infrastructure.Models;
 
-namespace OutboxRelay.Application.Transactions
+namespace OutboxRelay.Application.Transactions.Abstractions
 {
     public interface ITransactionApplication
     {

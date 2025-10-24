@@ -1,12 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using OutboxRelay.Common.Configuration;
-using OutboxRelay.Infrastructure.Models;
-using OutboxRelay.Infrastructure.Publisher;
-using OutboxRelay.Infrastructure.Publisher.Abstractions;
-using OutboxRelay.Infrastructure.Repositories.Outboxes;
-using OutboxRelay.PublisherWorkerService;
-using RabbitMQ.Client;
+using OutboxRelay.ConsumerWorkerService;
+using System;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -34,7 +28,7 @@ builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 builder.Services.AddSingleton<RabbitMqClientService>();
 builder.Services.AddScoped<IRabbitMqPublisher, RabbitMqPublisher>();
 
-builder.Services.AddHostedService<PublisherWorkerService>();
+builder.Services.AddHostedService<ConsumerWorkerService>();
 
 var host = builder.Build();
 host.Run();
