@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using OutboxRelay.Application.Features.Consumers;
 using OutboxRelay.Common.Configuration;
 using OutboxRelay.ConsumerWorkerService;
 using OutboxRelay.Core.Models;
@@ -27,6 +28,7 @@ builder.Services.AddSingleton<ConnectionFactory>(sp =>
     };
 });
 
+builder.Services.AddScoped<IMessageHandler<Transaction>, TransactionConsumedHandler>();
 builder.Services.AddSingleton<RabbitMqClientService>();
 
 builder.Services.AddHostedService<ConsumerWorkerService>();
