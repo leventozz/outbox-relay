@@ -19,14 +19,12 @@ namespace OutboxRelay.Infrastructure.Models
             modelBuilder.Entity<Transaction>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).HasDefaultValueSql("NEWID()");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
             });
 
             modelBuilder.Entity<Outbox>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).HasDefaultValueSql("NEWID()");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.RetryCount).HasDefaultValue(0);
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OutboxRelay.Api.Models;
+using OutboxRelay.Application.Transactions;
 using OutboxRelay.Common.Enums;
 using OutboxRelay.Infrastructure.Models;
 using OutboxRelay.Infrastructure.Repositories.Outboxes;
@@ -12,13 +13,11 @@ namespace OutboxRelay.Api.Controllers
     [ApiController]
     public class TransactionsController : ControllerBase
     {
-        private readonly ITransactionRepository _transactionRepository;
-        private readonly IOutboxRepository _outboxRepository;
+        private readonly ITransactionApplication _transactionApplication;
 
-        public TransactionsController(ITransactionRepository transactionRepository, IOutboxRepository outboxRepository)
+        public TransactionsController(ITransactionApplication transactionApplication)
         {
-            _transactionRepository = transactionRepository;
-            _outboxRepository = outboxRepository;
+            _transactionApplication = transactionApplication;
         }
 
         [HttpPost]
@@ -26,26 +25,7 @@ namespace OutboxRelay.Api.Controllers
         {
             try
             {
-                var transaction = new Transaction
-                {
-                    FromAccountId = request.FromAccountId,
-                    ToAccountId = request.ToAccountId,
-                    Amount = request.Amount,
-                    Status = (short)TransactionStatus.Pending,
-                    CreatedAt = DateTimeOffset.UtcNow
-                };
-
-                var createdTransaction = await _transactionRepository.CreateAsync(transaction);
-
-                var outboxEvent = new Outbox
-                {
-                    Payload = JsonSerializer.Serialize(createdTransaction),
-                    Status = (short)OutboxStatus.Pending,
-                    RetryCount = 0,
-                    CreatedAt = DateTimeOffset.UtcNow
-                };
-
-                await _outboxRepository.CreateAsync(outboxEvent);
+                await _transactionApplication.CommitAsync(request.FromAccountId, request.ToAccountId, request.Amount);
 
                 return Ok();
             }
