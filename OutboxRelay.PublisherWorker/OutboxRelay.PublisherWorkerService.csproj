@@ -12,6 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OutboxRelay.Infrastructure\OutboxRelay.Infrastructure.csproj" />
+    <ProjectReference Include="..\OutboxRelay.Application\OutboxRelay.Application.csproj" />
   </ItemGroup>
 </Project>

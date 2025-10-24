@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using OutboxRelay.Common.Configuration;
 using OutboxRelay.ConsumerWorkerService;
 using System;
 
