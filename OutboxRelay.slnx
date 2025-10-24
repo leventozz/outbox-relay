@@ -4,5 +4,6 @@
     <Project Path="OutboxRelay.Application/OutboxRelay.Application.csproj" />
     <Project Path="OutboxRelay.Common/OutboxRelay.Common.csproj" />
     <Project Path="OutboxRelay.Infrastructure/OutboxRelay.Infrastructure.csproj" />
+    <Project Path="OutboxRelay.PublisherWorker/OutboxRelay.PublisherWorkerService.csproj" Id="fb286354-a698-4f07-88bd-eea8eb3c495d" />
   </Folder>
 </Solution>

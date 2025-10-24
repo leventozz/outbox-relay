@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using OutboxRelay.Common.Enums;
 using OutboxRelay.Common.Exceptions;
 using OutboxRelay.Infrastructure.Models;
@@ -26,22 +27,28 @@ namespace OutboxRelay.Infrastructure.Repositories.Outboxes
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
 
-        public async Task<IEnumerable<Outbox>> GetPendingAsync()
+        public async Task<IEnumerable<Outbox>> GetAndLockPendingAsync(int batchSize = 5)
         {
             return await _context.Outboxes
-                .Where(o => o.Status == (short)TransactionStatus.Pending)
-                .OrderBy(o => o.CreatedAt)
+                .FromSqlRaw(@"
+                    SELECT TOP(@batchSize) * 
+                    FROM Outboxes WITH (UPDLOCK, READPAST, ROWLOCK)
+                    WHERE Status = @status
+                    ORDER BY CreatedAt
+                ",
+                new SqlParameter("@batchSize", batchSize),
+                new SqlParameter("@status", (short)OutboxStatus.Pending))
                 .ToListAsync();
         }
 
-        public async Task<Outbox> UpdateStatusAsync(Guid id, short status)
+        public async Task<Outbox> UpdateStatusAsync(Guid id, short status, string? errorMessage = null)
         {
             var outbox = await _context.Outboxes
                 .FirstOrDefaultAsync(o => o.Id == id);
 
             if (outbox == null)
             {
-                throw new OutboxNotFoundException();
+                throw new OutboxNotFoundException(id);
             }
 
             outbox.Status = status;
@@ -57,7 +64,7 @@ namespace OutboxRelay.Infrastructure.Repositories.Outboxes
 
             if (outbox == null)
             {
-                throw new OutboxNotFoundException();
+                throw new OutboxNotFoundException(id);
             }
 
             outbox.RetryCount = retryCount;

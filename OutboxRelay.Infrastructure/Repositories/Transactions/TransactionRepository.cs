@@ -32,7 +32,7 @@ namespace OutboxRelay.Infrastructure.Repositories.Transactions
 
             if (transaction == null)
             {
-                throw new TransactionNotFoundException();
+                throw new TransactionNotFoundException(id);
             }
 
             transaction.Status = status;
