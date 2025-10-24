@@ -35,6 +35,7 @@ builder.Services.AddSingleton<ConnectionFactory>(sp =>
     };
 });
 builder.Services.AddSingleton<RabbitMqClientService>();
+builder.Services.AddScoped<IRabbitMqPublisher, RabbitMqPublisher>();
 
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();

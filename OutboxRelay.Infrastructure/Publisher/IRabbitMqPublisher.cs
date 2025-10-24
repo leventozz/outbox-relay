@@ -4,6 +4,6 @@ namespace OutboxRelay.Infrastructure.Publisher
 {
     public interface IRabbitMqPublisher
     {
-        Task Publish(CreateTransactionMessage createTransactionMessage)
+        Task PublishAsync(CreateTransactionMessage createTransactionMessage, CancellationToken cancellationToken);
     }
 }

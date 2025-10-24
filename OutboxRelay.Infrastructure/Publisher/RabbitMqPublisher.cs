@@ -1,5 +1,6 @@
 ﻿using OutboxRelay.Common.Const;
 using OutboxRelay.Common.Messaging;
+using OutboxRelay.Common.Options;
 using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;
@@ -15,25 +16,28 @@ namespace OutboxRelay.Infrastructure.Publisher
             _rabbitMqClientService = rabbitMqClientService;
         }
 
-        public async Task Publish(CreateTransactionMessage createTransactionMessage)
+        public async Task PublishAsync(CreateTransactionMessage createTransactionMessage, CancellationToken cancellationToken)
         {
-            var channel = await _rabbitMqClientService.ConnectAsync();
+            var connection = await _rabbitMqClientService.GetConnectionAsync();
 
-            var bodyString = JsonSerializer.Serialize(createTransactionMessage);
+            await using var channel = await connection.CreateChannelAsync();
 
-            var bodyByte = Encoding.UTF8.GetBytes(bodyString);
+            var payload = JsonSerializer.Serialize(createTransactionMessage, JsonDefaults.Default);
+
+            var body = Encoding.UTF8.GetBytes(payload);
 
             BasicProperties properties = new BasicProperties
             {
+                ContentType = "application/json",
                 Persistent = true
             };
 
             await channel.BasicPublishAsync(
                 exchange: RabbitMqConstants.TransactionExchangeName,
                 routingKey: RabbitMqConstants.TransactionCreateRouteName,
-                mandatory: false,
+                mandatory: true,
                 basicProperties: properties,
-                body: bodyByte);
+                body: body);
         }
     }
 }
