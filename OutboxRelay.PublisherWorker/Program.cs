@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using OutboxRelay.Common.Configuration;
 using OutboxRelay.Infrastructure.Models;
 using OutboxRelay.Infrastructure.Publisher;
 using OutboxRelay.Infrastructure.Repositories.Outboxes;
 using OutboxRelay.PublisherWorkerService;
+using RabbitMQ.Client;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -15,6 +17,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("MSSQL"));
 });
 
+builder.Services.AddSingleton<ConnectionFactory>(sp =>
+{
+    var rabbitMqSettings = sp.GetRequiredService<IOptions<RabbitMqSettings>>().Value;
+    return new ConnectionFactory()
+    {
+        HostName = rabbitMqSettings.HostName,
+        Port = rabbitMqSettings.Port,
+        UserName = rabbitMqSettings.UserName,
+        Password = rabbitMqSettings.Password
+    };
+});
 
 builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 

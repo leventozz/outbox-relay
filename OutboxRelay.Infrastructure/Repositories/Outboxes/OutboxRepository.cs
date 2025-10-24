@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OutboxRelay.Common.Enums;
 using OutboxRelay.Common.Exceptions;
 using OutboxRelay.Infrastructure.Models;
+using System.Data;
 
 namespace OutboxRelay.Infrastructure.Repositories.Outboxes
 {
@@ -57,11 +58,16 @@ namespace OutboxRelay.Infrastructure.Repositories.Outboxes
                     );
             ";
 
+            SqlParameter[] parameters =
+            [
+                new() { ParameterName = "@batchSize", Value = batchSize, SqlDbType = SqlDbType.Int },
+                new() { ParameterName = "@newStatus", Value = (short)OutboxStatus.Processing, SqlDbType = SqlDbType.SmallInt },
+                new() { ParameterName = "@oldStatus", Value = (short)OutboxStatus.Pending, SqlDbType = SqlDbType.SmallInt }
+            ];
+
             return await _context.Outboxes
-                .FromSqlRaw(sql,
-                    new SqlParameter("@batchSize", batchSize),
-                    new SqlParameter("@newStatus", (short)OutboxStatus.Processing), 
-                    new SqlParameter("@oldStatus", (short)OutboxStatus.Pending))
+                .FromSqlRaw(sql, parameters)
+                .AsNoTracking()
                 .ToListAsync();
         }
 
