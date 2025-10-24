@@ -27,19 +27,35 @@ namespace OutboxRelay.Infrastructure.Repositories.Outboxes
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
 
+        /// <summary>
+        /// Claims a batch of pending outbox messages for processing. 
+        /// This method updates up to batchsize messages from the Outboxes table 
+        /// that are in the Pending status and are eligible for retry based on exponential backoff logic.
+        /// It sets their status to Processing, updates the LastAttemptAt timestamp, 
+        /// and returns the updated records. Row-level locks are used to prevent concurrent updates 
+        /// and skip already locked rows, ensuring safe parallel processing.
+        /// </summary>
+        /// <param name="batchSize"></param>
+        /// <returns></returns>
         public async Task<IEnumerable<Outbox>> ClaimPendingMessagesAsync(int batchSize = 5)
         {
             var sql = $@"
                 UPDATE TOP (@batchSize) Outboxes
                 SET 
-                    Status = @newStatus
+                    Status = @newStatus,
+                    LastAttemptAt = GETUTCDATE() 
                 OUTPUT 
                     inserted.*
                 FROM 
                     Outboxes WITH (UPDLOCK, READPAST, ROWLOCK)
                 WHERE 
-                    Status = @oldStatus;
-                ";
+                    Status = @oldStatus 
+                    AND (
+                        RetryCount = 0 
+                        OR 
+                        DATEADD(second, POWER(2, RetryCount), LastAttemptAt) <= GETUTCDATE()
+                    );
+            ";
 
             return await _context.Outboxes
                 .FromSqlRaw(sql,

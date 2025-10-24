@@ -21,11 +21,6 @@ namespace OutboxRelay.PublisherWorkerService
             _serviceScopeFactory = serviceScopeFactory;
         }
 
-        public override Task StartAsync(CancellationToken cancellationToken)
-        {
-            return base.StartAsync(cancellationToken);
-        }
-
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -58,18 +53,7 @@ namespace OutboxRelay.PublisherWorkerService
                 return;
             }
 
-            var now = DateTimeOffset.UtcNow;
-            var readyToProcess = pendingOutboxes
-                .Where(o => IsReadyForRetry(o, now))
-                .ToList();
-
-            if (!readyToProcess.Any())
-            {
-                _logger.LogDebug("No outbox records are ready for retry yet.");
-                return;
-            }
-
-            foreach (var outbox in readyToProcess)
+            foreach (var outbox in pendingOutboxes)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -85,14 +69,32 @@ namespace OutboxRelay.PublisherWorkerService
         {
             try
             {
-                var message = JsonSerializer.Deserialize<CreateTransactionMessage>(outboxItem.Payload, JsonDefaults.Default);
+                CreateTransactionMessage? message;
 
-                if (message == null)
+                try
                 {
-                    var errorMsg = "The outbox payload could not be deserialized.";
-                    _logger.LogError($"{errorMsg} OutboxId: {outboxItem.Id}");
-                    await outboxRepository.UpdateStatusAsync(outboxItem.Id, (short)OutboxStatus.Failed);
-                    return;
+                    message = JsonSerializer.Deserialize<CreateTransactionMessage>(outboxItem.Payload, JsonDefaults.Default);
+
+                    if (message == null)
+                    {
+                        var errorMsg = "The outbox payload could not be deserialized.";
+                        _logger.LogError($"{errorMsg} OutboxId: {outboxItem.Id}");
+                        await outboxRepository.UpdateStatusAsync(outboxItem.Id, (short)OutboxStatus.Failed);
+                        return;
+                    }
+                }
+                catch (JsonException jsonEx)
+                {
+                    _logger.LogError(jsonEx,
+                        "The outbox payload contains invalid JSON and cannot be deserialized. OutboxId: {OutboxId}",
+                        outboxItem.Id);
+
+                    await outboxRepository.UpdateStatusAsync(
+                        outboxItem.Id,
+                        (short)OutboxStatus.Failed,
+                        $"Invalid JSON: {jsonEx.Message}");
+
+                    return; 
                 }
 
                 await rabbitMqPublisher.PublishAsync(message, cancellationToken);
@@ -109,25 +111,23 @@ namespace OutboxRelay.PublisherWorkerService
 
                 if (newRetryCount >= _maxRetryCount)
                 {
-                    _logger.LogWarning("The outbox record has reached the maximum retry count and is marked as Failed. OutboxId: {OutboxId}, RetryCount: {RetryCount}",
+                    var errorMsg = "The outbox record has reached the maximum retry count and will be marked as Failed.";
+                    _logger.LogWarning($"{errorMsg} OutboxId: {outboxItem.Id}, RetryCount: {outboxItem.RetryCount}",
                         outboxItem.Id, newRetryCount);
 
                     await outboxRepository.UpdateStatusAsync(outboxItem.Id, (short)OutboxStatus.Failed);
                 }
+                else
+                {
+                    _logger.LogInformation(
+                        "The outbox record will be retried. OutboxId: {OutboxId}, RetryCount: {RetryCount}/{MaxRetry}",
+                        outboxItem.Id, newRetryCount, _maxRetryCount);
+
+                    await outboxRepository.UpdateStatusAsync(outboxItem.Id, (short)OutboxStatus.Pending);
+                }
 
                 await outboxRepository.UpdateRetryInfoAsync(outboxItem.Id, newRetryCount, errorMessage);
             }
-        }
-
-        private bool IsReadyForRetry(Outbox outbox, DateTimeOffset now)
-        {
-            if (outbox.RetryCount == 0 || outbox.LastAttemptAt == null)
-                return true;
-
-            var delaySeconds = Math.Pow(2, outbox.RetryCount);
-            var nextRetryTime = outbox.LastAttemptAt.Value.AddSeconds(delaySeconds);
-
-            return now >= nextRetryTime;
         }
     }
 }
