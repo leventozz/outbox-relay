@@ -50,7 +50,7 @@ namespace OutboxRelay.PublisherWorkerService
             var outboxRepository = scope.ServiceProvider.GetRequiredService<IOutboxRepository>();
             var rabbitMqPublisher = scope.ServiceProvider.GetRequiredService<IRabbitMqPublisher>();
 
-            var pendingOutboxes = await outboxRepository.GetAndLockPendingAsync();
+            var pendingOutboxes = await outboxRepository.ClaimPendingMessagesAsync();
 
             if (!pendingOutboxes.Any())
             {

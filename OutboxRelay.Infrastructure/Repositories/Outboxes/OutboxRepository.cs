@@ -27,17 +27,25 @@ namespace OutboxRelay.Infrastructure.Repositories.Outboxes
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
 
-        public async Task<IEnumerable<Outbox>> GetAndLockPendingAsync(int batchSize = 5)
+        public async Task<IEnumerable<Outbox>> ClaimPendingMessagesAsync(int batchSize = 5)
         {
+            var sql = $@"
+                UPDATE TOP (@batchSize) Outboxes
+                SET 
+                    Status = @newStatus
+                OUTPUT 
+                    inserted.*
+                FROM 
+                    Outboxes WITH (UPDLOCK, READPAST, ROWLOCK)
+                WHERE 
+                    Status = @oldStatus;
+                ";
+
             return await _context.Outboxes
-                .FromSqlRaw(@"
-                    SELECT TOP(@batchSize) * 
-                    FROM Outboxes WITH (UPDLOCK, READPAST, ROWLOCK)
-                    WHERE Status = @status
-                    ORDER BY CreatedAt
-                ",
-                new SqlParameter("@batchSize", batchSize),
-                new SqlParameter("@status", (short)OutboxStatus.Pending))
+                .FromSqlRaw(sql,
+                    new SqlParameter("@batchSize", batchSize),
+                    new SqlParameter("@newStatus", (short)OutboxStatus.Processing), 
+                    new SqlParameter("@oldStatus", (short)OutboxStatus.Pending))
                 .ToListAsync();
         }
 
