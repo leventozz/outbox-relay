@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OutboxRelay.Common\OutboxRelay.Common.csproj" />
     <ProjectReference Include="..\OutboxRelay.Core\OutboxRelay.Core.csproj" />
   </ItemGroup>
 
