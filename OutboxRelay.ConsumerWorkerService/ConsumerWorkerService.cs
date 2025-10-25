@@ -2,13 +2,11 @@ using OutboxRelay.Application.Features.Consumers;
 using OutboxRelay.Common.Const;
 using OutboxRelay.Common.Messaging;
 using OutboxRelay.Common.Options;
-using OutboxRelay.Core.Models;
 using OutboxRelay.Infrastructure.Publisher;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Channels;
 
 namespace OutboxRelay.ConsumerWorkerService
 {
@@ -30,19 +28,16 @@ namespace OutboxRelay.ConsumerWorkerService
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                while (!cancellationToken.IsCancellationRequested)
+                try
                 {
-                    try
-                    {
-                        await ConsumeAndProcessTransactionMessage(cancellationToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "An unexpected error occurred while processing outbox messages.");
-                    }
-
-                    await Task.Delay(_pollingInterval, cancellationToken);
+                    await ConsumeAndProcessTransactionMessage(cancellationToken);
                 }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "An unexpected error occurred while processing outbox messages.");
+                }
+
+                await Task.Delay(_pollingInterval, cancellationToken);
             }
         }
 
@@ -69,7 +64,7 @@ namespace OutboxRelay.ConsumerWorkerService
             var consumer = (AsyncEventingBasicConsumer)sender;
             var channel = consumer.Channel;
 
-            var createTransactionMessage = JsonSerializer.Deserialize<CreateTransactionMessage>(Encoding.UTF8.GetString(@event.Body.ToArray()),JsonDefaults.Default);
+            var createTransactionMessage = JsonSerializer.Deserialize<CreateTransactionMessage>(Encoding.UTF8.GetString(@event.Body.ToArray()), JsonDefaults.Default);
 
             using (var scope = _serviceScopeFactory.CreateScope())
             {
@@ -86,7 +81,7 @@ namespace OutboxRelay.ConsumerWorkerService
                         multiple: false,
                         requeue: false);
                 }
-                
+
             }
         }
     }

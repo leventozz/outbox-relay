@@ -2,7 +2,6 @@
 using OutboxRelay.Application.Abstractions;
 using OutboxRelay.Common.Messaging;
 using OutboxRelay.Core.Enums;
-using OutboxRelay.Core.Models;
 
 namespace OutboxRelay.Application.Features.Consumers
 {
