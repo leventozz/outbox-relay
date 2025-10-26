@@ -37,7 +37,6 @@ namespace OutboxRelay.Infrastructure.Repositories.Transactions
             }
 
             transaction.Status = status;
-            await _context.SaveChangesAsync();
             return transaction;
         }
     }

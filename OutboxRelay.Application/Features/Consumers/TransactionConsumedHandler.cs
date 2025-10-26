@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using OutboxRelay.Application.Abstractions;
 using OutboxRelay.Common.Messaging;
 using OutboxRelay.Core.Enums;
@@ -18,27 +19,54 @@ namespace OutboxRelay.Application.Features.Consumers
 
         public async Task HandleAsync(CreateTransactionMessage message, CancellationToken cancellationToken)
         {
-            var transaction = await _uow.TransactionRepository.GetByIdAsync(message.Id);
+            
 
-            if (transaction == null)
+            await _uow.BeginTransactionAsync(cancellationToken);
+
+            try
             {
-                _logger.LogError(
-                    "The consumed transaction record could not be found in the database. TransactionId: {TransactionId}",
-                    message.Id);
-                throw new InvalidOperationException($"Transaction {message.Id} not found in database.");
-            }
+                var transaction = await _uow.TransactionRepository.GetByIdAsync(message.Id);
 
-            if (transaction.Status != (short)TransactionStatus.Pending)
+                if (transaction == null)
+                {
+                    _logger.LogError(
+                        "The consumed transaction record could not be found in the database. TransactionId: {TransactionId}",
+                        message.Id);
+
+                    await _uow.CommitAsync(cancellationToken);
+                    return;
+                }
+
+                if (transaction.Status != (short)TransactionStatus.Pending)
+                {
+                    _logger.LogWarning(
+                        "The transaction has already been processed. Status: {Status}. Message ACK to be sent. TransactionId: {TransactionId}",
+                        (TransactionStatus)transaction.Status,
+                        transaction.Id);
+
+                    await _uow.CommitAsync(cancellationToken);
+                    return;
+                }
+
+                // Simulate processing the transaction (e.g., updating account balances)
+
+                transaction.Status = (short)TransactionStatus.Completed;
+
+                await _uow.CommitAsync(cancellationToken);
+
+            }
+            catch (SqlException ex) 
             {
-                _logger.LogWarning(
-                    "The transaction has already been processed. Status: {Status}. Message ACK to be sent. TransactionId: {TransactionId}",
-                    (TransactionStatus)transaction.Status,
-                    transaction.Id);
-
-                return;
+                _logger.LogWarning(ex, "Transient database error. Rolling back and requesting REQUEUE.");
+                await _uow.RollbackAsync(cancellationToken);
+                throw;
             }
-
-            await _uow.TransactionRepository.UpdateStatusAsync(transaction.Id, (short)TransactionStatus.Completed);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Permanent/Unexpected error in handler. Rolling back. Message will be NACKED (NO REQUEUE).");
+                await _uow.RollbackAsync(cancellationToken);
+                throw new InvalidOperationException("Handler permanent failure", ex);
+            }
         }
     }
 }

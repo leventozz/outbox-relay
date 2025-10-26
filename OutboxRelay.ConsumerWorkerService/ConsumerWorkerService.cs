@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using OutboxRelay.Application.Features.Consumers;
 using OutboxRelay.Common.Const;
 using OutboxRelay.Common.Messaging;
@@ -96,9 +97,18 @@ namespace OutboxRelay.ConsumerWorkerService
                     await consumerHandler.HandleAsync(createTransactionMessage, cancellationToken);
                     await _channel.BasicAckAsync(deliveryTag: @event.DeliveryTag, multiple: false);
                 }
+                catch (SqlException ex)
+                {
+                    _logger.LogWarning(ex, "Transient database error detected. Requeuing message. DeliveryTag: {DeliveryTag}", @event.DeliveryTag);
+
+                    await _channel.BasicNackAsync(
+                        deliveryTag: @event.DeliveryTag,
+                        multiple: false,
+                        requeue: true); 
+                }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error processing message. Sending to NACK.");
+                    _logger.LogError(ex, "Permanent or unexpected error detected. Message will be NACKED (no requeue) to prevent infinite loop. DeliveryTag: {DeliveryTag}", @event.DeliveryTag);
 
                     await _channel.BasicNackAsync(
                         deliveryTag: @event.DeliveryTag,
