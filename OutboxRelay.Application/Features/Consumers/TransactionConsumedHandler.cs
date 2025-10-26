@@ -38,12 +38,7 @@ namespace OutboxRelay.Application.Features.Consumers
                 return;
             }
 
-            transaction.Status = (short)TransactionStatus.Completed;
-
-            //getbyid already tracked by ef core
-            //await _uow.TransactionRepository.UpdateStatusAsync(transaction.Id, (short)TransactionStatus.Completed); 
-
-            await _uow.SaveChangesAsync(cancellationToken);
+            await _uow.TransactionRepository.UpdateStatusAsync(transaction.Id, (short)TransactionStatus.Completed);
         }
     }
 }

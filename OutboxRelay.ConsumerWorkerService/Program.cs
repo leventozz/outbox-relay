@@ -1,10 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using OutboxRelay.Application.Abstractions;
 using OutboxRelay.Application.Features.Consumers;
 using OutboxRelay.Common.Configuration;
+using OutboxRelay.Common.Messaging;
 using OutboxRelay.ConsumerWorkerService;
 using OutboxRelay.Core.Models;
+using OutboxRelay.Infrastructure;
 using OutboxRelay.Infrastructure.Publisher;
+using OutboxRelay.Infrastructure.Repositories.Outboxes;
+using OutboxRelay.Infrastructure.Repositories.Transactions;
 using RabbitMQ.Client;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -28,7 +33,10 @@ builder.Services.AddSingleton<ConnectionFactory>(sp =>
     };
 });
 
-builder.Services.AddScoped<IMessageHandler<Transaction>, TransactionConsumedHandler>();
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
+builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IMessageHandler<CreateTransactionMessage>, TransactionConsumedHandler>();
 builder.Services.AddSingleton<RabbitMqClientService>();
 
 builder.Services.AddHostedService<ConsumerWorkerService>();

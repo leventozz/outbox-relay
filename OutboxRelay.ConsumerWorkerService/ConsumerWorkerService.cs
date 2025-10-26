@@ -28,38 +28,41 @@ namespace OutboxRelay.ConsumerWorkerService
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                _connection = await _rabbitMqClientService.GetConnectionAsync();
-                _channel = await _connection.CreateChannelAsync();
-
-                await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false, cancellationToken: cancellationToken);
-
-                _consumer = new AsyncEventingBasicConsumer(_channel);
-
-                _consumer.ReceivedAsync += (sender, @event) =>
-                    Consumer_ReceivedAsync(sender, @event, cancellationToken); 
-
-                await _channel.BasicConsumeAsync(
-                    queue: RabbitMqConstants.TransactionQueueName,
-                    autoAck: false,
-                    consumer: _consumer);
-
-                _logger.LogInformation("Consumer subscribed to queue. Waiting for messages.");
-
-
-                while (!cancellationToken.IsCancellationRequested)
+                try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                    _connection = await _rabbitMqClientService.GetConnectionAsync();
+                    _channel = await _connection.CreateChannelAsync();
+
+                    await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false, cancellationToken: cancellationToken);
+
+                    _consumer = new AsyncEventingBasicConsumer(_channel);
+
+                    _consumer.ReceivedAsync += (sender, @event) =>
+                        Consumer_ReceivedAsync(sender, @event, cancellationToken);
+
+                    await _channel.BasicConsumeAsync(
+                        queue: RabbitMqConstants.TransactionQueueName,
+                        autoAck: false,
+                        consumer: _consumer);
+
+                    _logger.LogInformation("Consumer subscribed to queue. Waiting for messages.");
+
+
+                    while (!cancellationToken.IsCancellationRequested)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                    }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogWarning("Consumer Worker Service cancelled.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogCritical(ex, "Consumer Worker Service failed critically.");
+                catch (OperationCanceledException)
+                {
+                    _logger.LogWarning("Consumer Worker Service cancelled.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogCritical(ex, "Consumer Worker Service failed critically.");
+                }
             }
         }
 

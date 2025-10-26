@@ -13,7 +13,7 @@ namespace OutboxRelay.PublisherWorkerService
         private readonly ILogger<PublisherWorkerService> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly TimeSpan _pollingInterval = TimeSpan.FromSeconds(2);
-        private readonly int _maxRetryCount = 3;
+        private readonly int _maxRetryCount = 5;
 
         public PublisherWorkerService(ILogger<PublisherWorkerService> logger, IServiceScopeFactory serviceScopeFactory)
         {
