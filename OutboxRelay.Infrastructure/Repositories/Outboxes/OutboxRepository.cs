@@ -122,5 +122,40 @@ namespace OutboxRelay.Infrastructure.Repositories.Outboxes
 
             return outboxesToDelete.Count;
         }
+
+        public async Task BulkUpdateStatusAsync(IEnumerable<Guid> ids, short status)
+        {
+            var idList = ids.ToList();
+
+            if (!idList.Any()) 
+                return;
+
+            await _context.Outboxes
+                .Where(o => idList.Contains(o.Id))
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(o => o.Status, status)
+                    .SetProperty(o => o.LastAttemptAt, DateTimeOffset.UtcNow));
+        }
+
+        public async Task BulkUpdateRetryInfoAsync(IEnumerable<(Guid Id, int RetryCount, string ErrorMessage)> retryInfos)
+        {
+            var retryList = retryInfos.ToList();
+
+            if (!retryList.Any()) 
+                return;
+
+            var ids = retryList.Select(r => r.Id).ToList();
+            var outboxes = await _context.Outboxes
+                .Where(o => ids.Contains(o.Id))
+                .ToListAsync();
+
+            foreach (var outbox in outboxes)
+            {
+                var retryInfo = retryList.First(r => r.Id == outbox.Id);
+                outbox.RetryCount = retryInfo.RetryCount;
+                outbox.ErrorMessage = retryInfo.ErrorMessage;
+                outbox.LastAttemptAt = DateTimeOffset.UtcNow;
+            }
+        }
     }
 }

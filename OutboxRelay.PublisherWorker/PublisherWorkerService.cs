@@ -13,7 +13,7 @@ namespace OutboxRelay.PublisherWorkerService
         private readonly ILogger<PublisherWorkerService> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly TimeSpan _pollingInterval = TimeSpan.FromSeconds(2);
-        private readonly int _maxRetryCount = 5;
+        private readonly int _maxRetryCount = 10;
 
         public PublisherWorkerService(ILogger<PublisherWorkerService> logger, IServiceScopeFactory serviceScopeFactory)
         {
@@ -42,6 +42,7 @@ namespace OutboxRelay.PublisherWorkerService
         {
             using var scope = _serviceScopeFactory.CreateScope();
 
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var outboxRepository = scope.ServiceProvider.GetRequiredService<IOutboxRepository>();
             var rabbitMqPublisher = scope.ServiceProvider.GetRequiredService<IRabbitMqPublisher>();
 
@@ -53,6 +54,9 @@ namespace OutboxRelay.PublisherWorkerService
                 return;
             }
 
+            var successfulOutboxes = new List<Guid>();
+            var failedOutboxes = new List<(Guid Id, int NewRetryCount, string ErrorMessage, bool IsMaxRetryReached)>();
+
             foreach (var outbox in pendingOutboxes)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -61,72 +65,96 @@ namespace OutboxRelay.PublisherWorkerService
                     break;
                 }
 
-                await ProcessSingleOutboxAsync(outbox, outboxRepository, rabbitMqPublisher, cancellationToken);
-            }
-        }
-
-        private async Task ProcessSingleOutboxAsync(Outbox outboxItem, IOutboxRepository outboxRepository, IRabbitMqPublisher rabbitMqPublisher, CancellationToken cancellationToken)
-        {
-            try
-            {
-                CreateTransactionMessage? message;
-
                 try
                 {
-                    message = JsonSerializer.Deserialize<CreateTransactionMessage>(outboxItem.Payload, JsonDefaults.Default);
+                    CreateTransactionMessage? message;
 
-                    if (message == null)
+                    try
                     {
-                        var errorMsg = "The outbox payload could not be deserialized.";
-                        _logger.LogError($"{errorMsg} OutboxId: {outboxItem.Id}");
-                        await outboxRepository.UpdateStatusAsync(outboxItem.Id, (short)OutboxStatus.Failed);
-                        return;
+                        message = JsonSerializer.Deserialize<CreateTransactionMessage>(outbox.Payload, JsonDefaults.Default);
+
+                        if (message == null)
+                        {
+                            var errorMsg = "The outbox payload could not be deserialized.";
+                            _logger.LogError($"{errorMsg} OutboxId: {outbox.Id}");
+                            failedOutboxes.Add((outbox.Id, outbox.RetryCount, errorMsg, true));
+                            continue;
+                        }
                     }
+                    catch (JsonException jsonEx)
+                    {
+                        _logger.LogError(jsonEx,
+                            "The outbox payload contains invalid JSON and cannot be deserialized. OutboxId: {OutboxId}",
+                            outbox.Id);
+
+                        failedOutboxes.Add((outbox.Id, outbox.RetryCount, $"Invalid JSON: {jsonEx.Message},", true));
+                        continue;
+                    }
+
+                    //at least once. check duplicates on consumer side
+                    await rabbitMqPublisher.PublishAsync(message, cancellationToken);
+                    successfulOutboxes.Add(outbox.Id);
                 }
-                catch (JsonException jsonEx)
+                catch (Exception ex)
                 {
-                    _logger.LogError(jsonEx,
-                        "The outbox payload contains invalid JSON and cannot be deserialized. OutboxId: {OutboxId}",
-                        outboxItem.Id);
+                    _logger.LogError(ex, "An error occurred while processing the outbox record. OutboxId: {OutboxId}, RetryCount: {RetryCount}",
+                        outbox.Id, outbox.RetryCount);
 
-                    await outboxRepository.UpdateStatusAsync(
-                        outboxItem.Id,
-                        (short)OutboxStatus.Failed,
-                        $"Invalid JSON: {jsonEx.Message}");
+                    var newRetryCount = outbox.RetryCount + 1;
+                    var errorMessage = $"{ex.GetType().Name}: {ex.Message}";
 
-                    return; 
+                    var isMaxRetryReached = newRetryCount >= _maxRetryCount;
+
+                    if (isMaxRetryReached)
+                    {
+                        _logger.LogWarning(
+                            "The outbox record has reached the maximum retry count and will be marked as Failed. OutboxId: {OutboxId}, RetryCount: {RetryCount}",
+                            outbox.Id, newRetryCount);
+                    }
+                    else
+                    {
+                        _logger.LogInformation(
+                            "The outbox record will be retried. OutboxId: {OutboxId}, RetryCount: {RetryCount}/{MaxRetry}",
+                            outbox.Id, newRetryCount, _maxRetryCount);
+                    }
+
+                    failedOutboxes.Add((outbox.Id, newRetryCount, errorMessage, isMaxRetryReached));
+                }
+            }
+
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                if (successfulOutboxes.Any())
+                {
+                    await outboxRepository.BulkUpdateStatusAsync(successfulOutboxes, (short)OutboxStatus.Completed);
                 }
 
-                await rabbitMqPublisher.PublishAsync(message, cancellationToken);
+                if (failedOutboxes.Any())
+                {
+                    var maxRetryReachedIds = failedOutboxes.Where(f => f.IsMaxRetryReached).Select(f => f.Id).ToList();
+                    var retryableIds = failedOutboxes.Where(f => !f.IsMaxRetryReached).Select(f => f.Id).ToList();
 
-                await outboxRepository.UpdateStatusAsync(outboxItem.Id, (short)OutboxStatus.Completed);
+                    if (maxRetryReachedIds.Any())
+                    {
+                        await outboxRepository.BulkUpdateStatusAsync(maxRetryReachedIds, (short)OutboxStatus.Failed);
+                    }
+
+                    if (retryableIds.Any())
+                    {
+                        await outboxRepository.BulkUpdateStatusAsync(retryableIds, (short)OutboxStatus.Pending);
+                    }
+
+                    var retryInfos = failedOutboxes.Select(f => (f.Id, f.NewRetryCount, f.ErrorMessage)).ToList();
+                    await outboxRepository.BulkUpdateRetryInfoAsync(retryInfos);
+                }
+                await transaction.CommitAsync(cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while processing the outbox record. OutboxId: {OutboxId}, RetryCount: {RetryCount}",
-                    outboxItem.Id, outboxItem.RetryCount);
-
-                var newRetryCount = outboxItem.RetryCount + 1;
-                var errorMessage = $"{ex.GetType().Name}: {ex.Message}";
-
-                if (newRetryCount >= _maxRetryCount)
-                {
-                    var errorMsg = "The outbox record has reached the maximum retry count and will be marked as Failed.";
-                    _logger.LogWarning($"{errorMsg} OutboxId: {outboxItem.Id}, RetryCount: {outboxItem.RetryCount}",
-                        outboxItem.Id, newRetryCount);
-
-                    await outboxRepository.UpdateStatusAsync(outboxItem.Id, (short)OutboxStatus.Failed);
-                }
-                else
-                {
-                    _logger.LogInformation(
-                        "The outbox record will be retried. OutboxId: {OutboxId}, RetryCount: {RetryCount}/{MaxRetry}",
-                        outboxItem.Id, newRetryCount, _maxRetryCount);
-
-                    await outboxRepository.UpdateStatusAsync(outboxItem.Id, (short)OutboxStatus.Pending);
-                }
-
-                await outboxRepository.UpdateRetryInfoAsync(outboxItem.Id, newRetryCount, errorMessage);
+                _logger.LogError(ex, "Failed to update outbox statuses in database. Rolling back transaction.");
+                await transaction.RollbackAsync(cancellationToken);
             }
         }
     }
