@@ -23,7 +23,12 @@ namespace OutboxRelay.Infrastructure.Repositories.Transactions
         public async Task<Transaction?> GetByIdAsync(Guid id)
         {
             return await _context.Transactions
-                .FirstOrDefaultAsync(t => t.Id == id);
+                .FromSqlInterpolated($@"
+                    SELECT * FROM Transactions WITH (UPDLOCK, ROWLOCK)
+                    WHERE Id = {id}
+                ")
+                .AsTracking()
+                .FirstOrDefaultAsync();
         }
 
         public async Task<Transaction> UpdateStatusAsync(Guid id, short status)
