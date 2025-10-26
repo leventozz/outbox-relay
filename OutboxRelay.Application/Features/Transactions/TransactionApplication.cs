@@ -1,4 +1,6 @@
 ﻿using OutboxRelay.Application.Abstractions;
+using OutboxRelay.Common.Messaging;
+using OutboxRelay.Common.Options;
 using OutboxRelay.Core.Enums;
 using OutboxRelay.Core.Models;
 using System.Text.Json;
@@ -27,9 +29,9 @@ namespace OutboxRelay.Application.Features.Transactions
         /// entity.</returns>
         public async Task<Transaction> RegisterTransactionAsync(int fromAccountId, int toAccountId, decimal amount)
         {
+            await _unitOfWork.BeginTransactionAsync();
             try
             {
-                
                 var transactionEntity = new Transaction
                 {
                     Id = Guid.NewGuid(),
@@ -40,7 +42,12 @@ namespace OutboxRelay.Application.Features.Transactions
                     CreatedAt = DateTimeOffset.UtcNow
                 };
 
-                var payload = JsonSerializer.Serialize(transactionEntity);
+                CreateTransactionMessage createTransactionMessage = new CreateTransactionMessage
+                {
+                    Id = transactionEntity.Id
+                };
+
+                var payload = JsonSerializer.Serialize(createTransactionMessage, JsonDefaults.Default);
 
                 var outboxEntity = new Outbox
                 {
