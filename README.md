@@ -67,7 +67,7 @@ The project implements the Outbox pattern to handle distributed transactions rel
 
 1. **Clone the Repository**
 ```bash
-git clone https://github.com/yourusername/OutboxRelay.git
+git clone https://github.com/leventozz/OutboxRelay.git
 cd OutboxRelay
 ```
 
