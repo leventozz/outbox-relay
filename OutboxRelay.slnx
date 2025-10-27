@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="docker-compose.yml" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="OutboxRelay.Api/OutboxRelay.Api.csproj" />
     <Project Path="OutboxRelay.Application/OutboxRelay.Application.csproj" />

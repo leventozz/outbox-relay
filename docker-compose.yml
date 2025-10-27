@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: outboxrelay_mssql
+    ports:
+      - "1433:1433" 
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=GucluSifre!2025 
+    volumes:
+      - mssql_data:/var/opt/mssql
+
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: outboxrelay_rabbitmq
+    ports:
+      - "5672:5672"   
+      - "15672:15672"  
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  api:
+    build:
+      context: .  
+      dockerfile: src/OutboxRelay.Api/Dockerfile 
+    container_name: outboxrelay_api
+    ports:
+      - "8080:8080" 
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__MSSQL=Server=mssql;Database=OutboxRelay;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=True
+      - RabbitMqSettings__HostName=rabbitmq
+    depends_on:
+      - mssql
+      - rabbitmq
+
+  
+  publisher:
+    build:
+      context: .
+      dockerfile: src/OutboxRelay.PublisherWorkerService/Dockerfile
+    container_name: outboxrelay_publisher
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__MSSQL=Server=mssql;Database=OutboxRelay;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=True
+      - RabbitMqSettings__HostName=rabbitmq
+    depends_on:
+      - mssql
+      - rabbitmq
+
+  
+  consumer:
+    build:
+      context: .
+      dockerfile: src/OutboxRelay.ConsumerWorkerService/Dockerfile
+    container_name: outboxrelay_consumer
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__MSSQL=Server=mssql;Database=OutboxRelay;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=True
+      - RabbitMqSettings__HostName=rabbitmq
+    depends_on:
+      - mssql
+      - rabbitmq
+
+volumes:
+  mssql_data:
+  rabbitmq_data:
