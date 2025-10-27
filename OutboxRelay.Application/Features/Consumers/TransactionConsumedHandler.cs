@@ -19,8 +19,6 @@ namespace OutboxRelay.Application.Features.Consumers
 
         public async Task HandleAsync(CreateTransactionMessage message, CancellationToken cancellationToken)
         {
-            
-
             await _uow.BeginTransactionAsync(cancellationToken);
 
             try
@@ -48,7 +46,7 @@ namespace OutboxRelay.Application.Features.Consumers
                     return;
                 }
 
-                // Simulate processing the transaction (e.g., updating account balances)
+                // simulate processing the transaction (e.g., updating account balances)
 
                 transaction.Status = (short)TransactionStatus.Completed;
 

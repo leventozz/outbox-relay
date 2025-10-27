@@ -25,19 +25,14 @@ namespace OutboxRelay.Infrastructure
 
         public async Task CommitAsync(CancellationToken ct = default)
         {
-            try
-            {
-                await _context.SaveChangesAsync(ct);
 
-                if (_transaction != null)
-                {
-                    await _transaction.CommitAsync(ct);
-                }
-            }
-            catch
+            await _context.SaveChangesAsync(ct);
+
+            if (_transaction != null)
             {
-                await RollbackAsync(ct);
-                throw;
+                await _transaction.CommitAsync(ct);
+                await _transaction.DisposeAsync();
+                _transaction = null;
             }
         }
 
@@ -45,7 +40,15 @@ namespace OutboxRelay.Infrastructure
         {
             if (_transaction != null)
             {
-                await _transaction.DisposeAsync();
+                try
+                {
+                    await _transaction.RollbackAsync(ct);
+                }
+                finally
+                {
+                    await _transaction.DisposeAsync();
+                    _transaction = null;
+                }
             }
         }
 
