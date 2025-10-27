@@ -14,9 +14,9 @@ OutboxRelay is a robust message relay system implementing the Outbox pattern to 
 - **Atomic Transactions**: Maintains data consistency across database and message operations
 - **Concurrent Processing Safety**: Thread-safe message handling with SQL Server locks
 - **Idempotent Consumer**: Handles duplicate messages gracefully through status checks
-- **Smart Retry Mechanism**: Database-level exponential backoff for failed deliveries
+- **Retry Mechanism**: Database-level exponential backoff for failed deliveries
 - **Publisher/Consumer Architecture**: Separate worker services for publishing and consuming messages
-- **Monitoring & Logging**: Comprehensive logging for tracking message flow and debugging
+- **Logging**: Comprehensive logging for tracking message flow and debugging
 
 ## Technology Stack
 
@@ -45,7 +45,7 @@ The project implements the Outbox pattern to handle distributed transactions rel
 
 3. **Retry Management**:
    - Implements database-level exponential backoff
-   - Prevents self-DDoS during service outages (e.g., RabbitMQ down)
+   - Prevents self-DDoS during service outages
    - Automatically adjusts retry intervals based on failure count
 
 2. **Components**:
