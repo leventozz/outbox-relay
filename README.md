@@ -109,7 +109,7 @@ The database will be automatically created on first run using EF Core's `EnsureC
 ### Creating a Transaction
 
 ```http
-POST /api/transactions
+POST /api/Transactions/CreateTransaction
 Content-Type: application/json
 
 {
